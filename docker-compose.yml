@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: vain_cloud_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vaincloud
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - fabric_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  platform:
+    image: python:3.11-slim
+    container_name: vain_cloud_app
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # Grants orchestration access over the Docker runtime API
+      - /proc:/proc:ro                             # Grants zero-dependency host metric streaming
+      - /sys:/sys:ro                               # Mounts structural control configuration trees
+    working_dir: /app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/vaincloud
+      - JWT_SECRET_KEY=vain-cloud-super-signature-key-2026
+    ports:
+      - "5000:5000"
+    command: sh -c "pip install flask flask-sqlalchemy psycopg2-binary docker gunicorn && gunicorn --workers 2 --bind 0.0.0.0:5000 app:app"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fabric_network
+
+volumes:
+  pgdata:
+
+networks:
+  fabric_network:
+    name: vain_cloud_fabric
