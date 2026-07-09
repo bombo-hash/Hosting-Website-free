@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vain Cloud — Compute Fabric Engine</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans">
+    <div id="auth-view" class="flex items-center justify-center min-h-screen">
+        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-xl w-full max-w-md shadow-2xl">
+            <h2 class="text-3xl font-bold mb-6 tracking-tight text-indigo-400">Vain Cloud</h2>
+            <div id="auth-error" class="hidden bg-red-950 border border-red-800 text-red-200 text-sm p-3 rounded mb-4"></div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Email System Handle</label>
+                    <input id="auth-email" type="email" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-zinc-400 mb-1">Access Token Password</label>
+                    <input id="auth-password" type="password" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2.5 text-zinc-200 focus:outline-none focus:border-indigo-500">
+                </div>
+                <button onclick="handleAuth('login')" class="w-full bg-indigo-600 hover:bg-indigo-700 font-medium py-2.5 rounded transition">Authenticate</button>
+                <button onclick="handleAuth('register')" class="w-full bg-zinc-800 hover:bg-zinc-700 font-medium py-2.5 rounded transition text-xs text-zinc-400">Request New Base Provision Access</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-view" class="hidden flex flex-col min-h-screen">
+        <nav class="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-6">
+                <span class="text-xl font-black tracking-wider text-indigo-400">VAIN CLOUD</span>
+                <button onclick="switchTab('dashboard')" class="text-sm text-zinc-300 hover:text-white">Compute Infrastructure</button>
+                <button id="admin-nav" onclick="switchTab('admin')" class="hidden text-sm text-zinc-300 hover:text-white">Admin Fabric Control</button>
+            </div>
+            <button onclick="triggerLogout()" class="text-xs bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded transition">De-authenticate</button>
+        </nav>
+
+        <main class="flex-grow p-6 max-w-7xl w-full mx-auto space-y-6">
+            <div id="tab-dashboard" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-xl">
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Host Node CPU Utilization</h3>
+                        <canvas id="cpuChart" class="h-24"></canvas>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-xl">
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">Platform Engine Memory Capacity</h3>
+                        <canvas id="ramChart" class="h-24"></canvas>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex flex-col justify-center">
+                        <h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Billing Verification Account Status</h3>
+                        <span id="trial-banner" class="text-lg font-bold text-emerald-400">Verified System Node Operations</span>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold">Isolated User Deployment Modules</h2>
+                        <button onclick="toggleDeployModal(true)" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm transition">Provision Application Engine</button>
+                    </div>
+                    <div id="projects-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <div id="tab-admin" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold">Core Infrastructure Controls</h2>
+                <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl">
+                    <h3 class="text-lg font-medium mb-4 text-zinc-300">Identity Control Database Ledger</h3>
+                    <div class="overflow-x-auto"><table class="w-full text-left text-sm text-zinc-400"><thead class="bg-zinc-950 uppercase text-xs font-bold text-zinc-500"><tr><th class="p-3">User Node</th><th class="p-3">Infrastructure State Plan</th><th class="p-3">Access Action Sequences</th></tr></thead><tbody id="admin-users-rows"></tbody></table></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="deploy-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-xl max-w-lg w-full space-y-4">
+            <h3 class="text-lg font-bold">Initialize Node Provisioning Context</h3>
+            <input id="proj-name" placeholder="Application Deployment Profile Name" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-200">
+            <input id="proj-url" placeholder="Source Directory Repository URI (Git)" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-200">
+            <input id="proj-branch" placeholder="Source Tracking Target Branch" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-200" value="main">
+            <input id="proj-start" placeholder="Runtime Bootstrap Execution Instruction" class="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-200">
+            <div class="flex justify-end space-x-2"><button onclick="toggleDeployModal(false)" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded text-sm">Abort</button><button onclick="executeDeploymentPipeline()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-sm">Launch Orchestration</button></div>
+        </div>
+    </div>
+
+    <script>
+        let cpuChart, ramChart;
+        function initCharts() {
+            const opts = { type: 'line', data: { labels: [...Array(10).keys()], datasets: [{ data: Array(10).fill(0), borderColor: '#6366f1', tension: 0.4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 }, x: { display: false } } } };
+            cpuChart = new Chart(document.getElementById('cpuChart'), opts);
+            ramChart = new Chart(document.getElementById('ramChart'), JSON.parse(JSON.stringify(opts)));
+        }
+
+        async function handleAuth(action) {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const res = await fetch(`/api/auth/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+            const data = await res.json();
+            if(res.ok) {
+                if(action === 'login') {
+                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('app-view').classList.remove('hidden');
+                    if(data.role === 'admin') document.getElementById('admin-nav').classList.remove('hidden');
+                    initCharts();
+                    runOrchestrationPolling();
+                } else alert('Access Profile Authorized. Authenticate to establish context session.');
+            } else {
+                document.getElementById('auth-error').innerText = data.error;
+                document.getElementById('auth-error').classList.remove('hidden');
+            }
+        }
+
+        async function triggerLogout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-dashboard').classList.toggle('hidden', tab !== 'dashboard');
+            document.getElementById('tab-admin').classList.toggle('hidden', tab !== 'admin');
+        }
+
+        function toggleDeployModal(show) { document.getElementById('deploy-modal').classList.toggle('hidden', !show); }
+
+        async function executeDeploymentPipeline() {
+            const payload = {
+                name: document.getElementById('proj-name').value,
+                repo_url: document.getElementById('proj-url').value,
+                branch: document.getElementById('proj-branch').value,
+                start_cmd: document.getElementById('proj-start').value
+            };
+            const res = await fetch('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if(res.ok) { toggleDeployModal(false); loadDashboardData(); } else { const d = await res.json(); alert(d.error); }
+        }
+
+        async function runProjectAction(id, action) {
+            await fetch(`/api/projects/${id}/action`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+            loadDashboardData();
+        }
+
+        async function loadDashboardData() {
+            const res = await fetch('/api/projects');
+            if(!res.ok) return;
+            const data = await res.json();
+            
+            if (data.trial_expired) {
+                document.getElementById('trial-banner').innerText = "Trial Expired — Application Runtimes Terminated";
+                document.getElementById('trial-banner').className = "text-lg font-bold text-red-500";
+            }
+
+            const list = document.getElementById('projects-list');
+            list.innerHTML = '';
+            data.projects.forEach(p => {
+                list.innerHTML += `
+                    <div class="bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h4 class="font-bold text-zinc-200 text-base">${p.name} <span class="text-xs px-2 py-0.5 rounded ml-2 ${p.status === 'running' ? 'bg-emerald-950 text-emerald-400' : 'bg-zinc-800 text-zinc-400'}">${p.status}</span></h4>
+                            <p class="text-xs text-zinc-500 mt-1">${p.repo_url} (${p.branch})</p>
+                            <p class="text-xs text-indigo-400 font-mono mt-0.5">${p.domain}</p>
+                        </div>
+                        <div class="text-xs text-zinc-400 font-mono">CPU: ${p.metrics.cpu}% | RAM: ${(p.metrics.memory / 1024 / 1024).toFixed(1)}MB</div>
+                        <div class="flex space-x-2">
+                            ${p.status === 'running' ? `<button onclick="runProjectAction(${p.id}, 'stop')" class="bg-amber-950 hover:bg-amber-900 text-amber-400 px-3 py-1 rounded text-xs transition">Stop Container</button>` : `<button onclick="runProjectAction(${p.id}, 'start')" class="bg-emerald-950 hover:bg-emerald-900 text-emerald-400 px-3 py-1 rounded text-xs transition">Start Run</button>`}
+                            <button onclick="runProjectAction(${p.id}, 'delete')" class="bg-red-950 hover:bg-red-900 text-red-400 px-3 py-1 rounded text-xs transition">Purge</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        async function loadAdminData() {
+            if(document.getElementById('admin-nav').classList.contains('hidden')) return;
+            const resMetrics = await fetch('/api/admin/metrics');
+            if(resMetrics.ok) {
+                const dm = await resMetrics.json();
+                cpuChart.data.datasets[0].data.push(dm.system.cpu_usage); cpuChart.data.datasets[0].data.shift(); cpuChart.update();
+                ramChart.data.datasets[0].data.push(dm.system.ram_pct); ramChart.data.datasets[0].data.shift(); ramChart.update();
+            }
+            const resUsers = await fetch('/api/admin/users');
+            if(resUsers.ok) {
+                const du = await resUsers.json();
+                const container = document.getElementById('admin-users-rows');
+                container.innerHTML = '';
+                du.users.forEach(u => {
+                    container.innerHTML += `<tr class="border-b border-zinc-900 hover:bg-zinc-900/40"><td class="p-3 font-medium text-zinc-300">${u.email}</td><td class="p-3"><span class="text-xs uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">${u.plan_tier}</span></td><td class="p-3"><button onclick="modifyUser(${u.id}, 'grant_premium')" class="bg-indigo-950 hover:bg-indigo-900 text-indigo-400 text-xs px-2 py-1 rounded mr-1 transition">Grant Pro Tier</button><button onclick="modifyUser(${u.id}, 'suspend')" class="bg-red-950 hover:bg-red-900 text-red-400 text-xs px-2 py-1 rounded transition">Suspend Account</button></td></tr>`;
+                });
+            }
+        }
+
+        async function modifyUser(userId, action) {
+            await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, action, days: 30 }) });
+            loadAdminData();
+        }
+
+        function runOrchestrationPolling() {
+            loadDashboardData(); loadAdminData();
+            setInterval(() => { loadDashboardData(); loadAdminData(); }, 5000);
+        }
+    </script>
+</body>
+</html>
